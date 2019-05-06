@@ -165,7 +165,7 @@ services:
     restart: unless-stopped
     environment:
       ELASTICSEARCH_HOST: http://fotostam_elasticsearch:9200
-      PRISMA_URL: http://fotostam_prisma:9200
+      PRISMA_URL: http://fotostam_prisma:4466
     ports:
       - 4000:4000
     volumes_from:
