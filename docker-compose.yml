@@ -35,7 +35,7 @@ services:
     image: minio/minio
     container_name: fotostam_minio
     volumes:
-      - ./data:/data
+      - ../data:/data
     ports:
       - "9000:9000"
     environment:
@@ -164,7 +164,8 @@ services:
     container_name: fotostam_apollo
     restart: unless-stopped
     environment:
-      ELASTICSEARCH_HOST: http://fotostam_elasticsearch:9200/
+      ELASTICSEARCH_HOST: http://fotostam_elasticsearch:9200
+      PRISMA_URL: http://fotostam_prisma:9200
     ports:
       - 4000:4000
     volumes_from:

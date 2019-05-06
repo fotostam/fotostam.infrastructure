@@ -42,11 +42,11 @@ do
     printf "Indexing $directory/$file with index $hash \n"
     
     #image data
-    height=`identify -format "%h" "$directory/$file"`
-    width=`identify -format "%w" $directory/$file`
-    size=`identify -format "%b" $directory/$file`
-    time=`identify -format "%[EXIF:DateTime]" $directory/$file`
-    camera=`identify -format "%[EXIF:Make] %[EXIF:Model]" $directory/$file`
+    height=`identify -quite -format "%h" "$directory/$file"`
+    width=`identify -quite -format "%w" $directory/$file`
+    size=`identify -quite -format "%b" $directory/$file`
+    time=`identify -quite -format "%[EXIF:DateTime]" $directory/$file`
+    camera=`identify -quite -format "%[EXIF:Make] %[EXIF:Model]" $directory/$file`
 
     curl -H "Content-Type: application/json" -XPOST "${ELASTICSEARCH_HOST}fotoindex/_doc/$hash_" -d "$(file_data)"
     printf "\n"
