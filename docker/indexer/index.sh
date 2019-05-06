@@ -19,7 +19,7 @@ generate_mapping() {
   "mappings": {
     "_doc": {
       "properties": {
-        "filename": { "type": "keyword" },
+        "filename": { "type": "text" },
         "height": { "type": "integer" },
         "width": { "type": "integer" },
         "size": { "type": "keyword" },

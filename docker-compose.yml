@@ -167,8 +167,10 @@ services:
       ELASTICSEARCH_HOST: http://fotostam_elasticsearch:9200/
     ports:
       - 4000:4000
+    volumes_from:
+      - minio
     volumes:
-      - ../prisma-server:/app
+      - ../fotostam.apollo:/app
     networks:
       - fotostam
 
@@ -179,7 +181,7 @@ services:
     ports:
       - 5000:5000
     volumes:
-      - ../fotostam-client:/app
+      - ../fotostam.client:/app
     networks:
       - fotostam
 volumes:
