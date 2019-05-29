@@ -108,7 +108,7 @@ services:
   prisma:
     image: prismagraphql/prisma:1.32 
     container_name: fotostam_prisma
-    restart: always
+    restart: unless-stopped
     ports:
     - "4466:4466"
     environment:
@@ -127,7 +127,7 @@ services:
   mysql:
     image: mysql:5.7
     container_name: fotostam_mysql
-    restart: always
+    restart: unless-stopped
     command: mysqld
     environment:
       MYSQL_USER: root

@@ -7,7 +7,6 @@ file_data() {
     "height": "${height:-0}",
     "width": "${width:-0}",
     "size": "${size:-onbekend}",
-    "time": "${time:-0}",
     "camera": "${camera:-onbekend}"
 }
 EOF
@@ -23,7 +22,6 @@ generate_mapping() {
         "height": { "type": "integer" },
         "width": { "type": "integer" },
         "size": { "type": "keyword" },
-        "time": { "type": "date" },
         "camera": { "type": "keyword" }
       }
     }
@@ -50,7 +48,6 @@ do
         height=`identify -quiet -format "%h" $file`
         width=`identify -quiet -format "%w" $file`
         size=`identify -quiet -format "%b" $file`
-        time=`identify -quiet -format "%[EXIF:DateTime]" $file`
         camera=`identify -quiet -format "%[EXIF:Make] %[EXIF:Model]" $file`
 
         curl -H "Content-Type: application/json" -XPOST "${ELASTICSEARCH_HOST}fotoindex/_doc/$hash_" -d "$(file_data)"
