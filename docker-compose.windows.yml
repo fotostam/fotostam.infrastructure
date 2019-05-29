@@ -1,0 +1,198 @@
+version: '2'
+services:
+  kibana:
+    image: docker.elastic.co/kibana/kibana:7.0.1
+    container_name: fotostam_kibana
+    volumes:
+      - ./config/kibana.yml:/usr/share/kibana/config/kibana.yml
+    environment:
+      ELASTICSEARCH_HOSTS: http://fotostam_elasticsearch:9200/
+    ports:
+      - 5601:5601
+    networks:
+      - fotostam
+
+  elasticsearch:
+    build: ./docker/elasticsearch
+    container_name: fotostam_elasticsearch
+    environment:
+      - node.name=es01
+      - discovery.type=single-node
+      - bootstrap.memory_lock=true
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    volumes:
+      - esdata01:/usr/share/elasticsearch/data
+    ports:
+      - 9200:9200
+      - 9300:9300
+    networks:
+      - fotostam
+  minio:
+    image: minio/minio
+    container_name: fotostam_minio
+    volumes:
+      - D:\Fotostam\2019\Photos:/data
+    ports:
+      - "9000:9000"
+    environment:
+      MINIO_ACCESS_KEY: fotostam
+      MINIO_SECRET_KEY: secretsecret
+    command: server /data
+    networks:
+      - fotostam
+  thumbor:
+    image: apsl/thumbor
+    container_name: fotostam_thumbor
+    environment:
+      - RESULT_STORAGE_STORES_UNSAFE=True
+      - DETECTORS=['thumbor.detectors.queued_detector.queued_complete_detector','thumbor.detectors.feature_detector','thumbor.detectors.face_detector']
+      - REDIS_QUEUE_SERVER_HOST=redis
+      - REDIS_QUEUE_SERVER_PORT=6379
+      - REDIS_QUEUE_SERVER_DB=0
+      - AWS_ACCESS_KEY_ID=fotostam
+      - AWS_SECRET_ACCESS_KEY=secretsecret
+      - ALLOW_UNSAFE_URL=True
+      - S3_USE_SIGV4=True
+      - LOADER=tc_aws.loaders.s3_loader
+      - TC_AWS_ENDPOINT='http://minio:9000'
+      - TC_AWS_REGION=eu-central-1
+      - TC_AWS_STORAGE_BUCKET=result
+      - TC_AWS_STORAGE_ROOT_PATH=storage
+      - TC_AWS_RESULT_STORAGE_BUCKET=result
+      - TC_AWS_LOADER_BUCKET=bucket
+      - STORAGE=tc_aws.storages.s3_storage
+      - UPLOAD_PHOTO_STORAGE=tc_aws.storages.s3_storage
+      - RESULT_STORAGE=tc_aws.result_storages.s3_storage
+      - MIXED_STORAGE_DETECTOR_STORAGE=tc_aws.storages.s3_storage
+    volumes:
+      - thumbor:/data
+    links:
+      - redis:redis
+    hostname: thumbor
+    ports:
+      - 8000:8000
+    networks:
+      - fotostam
+  nginx:
+    image: apsl/thumbor-nginx
+    container_name: fotostam_thumbor_nginx
+    links:
+      - thumbor:thumbor
+    volumes_from:
+      - thumbor
+    ports:
+      - "8169:80" # thumbor port
+    hostname: nginx
+    networks:
+      - fotostam
+  remotecv:
+    image: apsl/remotecv
+    container_name: fotostam_remotecv
+    links:
+      - redis:redis
+    environment:
+      - REMOTECV_REDIS_HOST=redis
+      - REMOTECV_REDIS_PORT=6379
+      - REMOTECV_REDIS_DATABASE=0
+    networks:
+      - fotostam
+  redis:
+    image: redis:latest
+    container_name: fotostam_redis
+    networks:
+      - fotostam
+  prisma:
+    image: prismagraphql/prisma:1.32 
+    container_name: fotostam_prisma
+    restart: always
+    ports:
+    - "4466:4466"
+    environment:
+      PRISMA_CONFIG: |
+        port: 4466
+        databases:
+          default:
+            connector: mysql
+            host: mysql
+            port: 3306
+            user: root
+            password: prisma
+            migrations: true
+    networks:
+      - fotostam
+  mysql:
+    image: mysql:5.7
+    container_name: fotostam_mysql
+    restart: always
+    command: mysqld
+    environment:
+      MYSQL_USER: root
+      MYSQL_ROOT_PASSWORD: prisma
+    volumes:
+      - mysql:/var/lib/mysql
+    ports:
+    - "3306:3306"
+    networks:
+      - fotostam
+
+  indexer:
+    build: ./docker/indexer
+    container_name: fotostam_indexer
+    restart: unless-stopped
+    environment:
+      ELASTICSEARCH_HOST: http://fotostam_elasticsearch:9200/
+    volumes_from:
+      - minio
+    networks:
+      - fotostam
+
+  adminer:
+    image:  adminer:4.7-standalone
+    container_name: fotostam_adminer
+    restart: unless-stopped
+    ports:
+      - 8081:8080
+    networks:
+      - fotostam
+
+  apollo:
+    build: ./docker/apollo
+    container_name: fotostam_apollo
+    restart: unless-stopped
+    environment:
+      ELASTICSEARCH_HOST: http://fotostam_elasticsearch:9200
+      PRISMA_URL: http://fotostam_prisma:9200
+    ports:
+      - 4000:4000
+    volumes_from:
+      - minio
+    volumes:
+      - ../fotostam.apollo:/app
+    networks:
+      - fotostam
+
+  client:
+    build: ./docker/client
+    container_name: fotostam_client
+    restart: unless-stopped
+    ports:
+      - 5000:5000
+    volumes:
+      - ../fotostam.client:/app
+    networks:
+      - fotostam
+volumes:
+  esdata01:
+    driver: local
+  thumbor:
+    driver: local
+  mysql:
+    driver: local
+
+networks:
+  fotostam:
+    driver: bridge
